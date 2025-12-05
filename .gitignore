@@ -1,0 +1,14 @@
+312_venv/
+venv/
+.venv/
+env/
+
+__pycache__/
+*.pyc
+*.egg-info/
+
+chroma_langchain_db/
+
+versiculos/
+
+*.log
