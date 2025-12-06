@@ -5,3 +5,5 @@ __pycache__
 *.pyc
 *.log
 versiculos/
+312_venv/
+chroma_langchain_db/
