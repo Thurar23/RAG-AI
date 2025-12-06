@@ -1,5 +1,7 @@
 .git
+.gitignore
 .venv
 __pycache__
 *.pyc
+*.log
 versiculos/
