@@ -11,7 +11,7 @@ OLLAMA_URL = "http://localhost:11434"
 
 OLLAMA_HEADERS = {"Host": "localhost:11434"}
 
-llm = ChatOllama(model="granite3.3:8b", base_url=OLLAMA_URL, base_headers=OLLAMA_HEADERS)
+llm = ChatOllama(model="granite3.3:8b", base_url=OLLAMA_URL, base_headers=OLLAMA_HEADERS, keep_alive=-1, streaming=True)
 print("aqui rodou")
 
 embeddings = OllamaEmbeddings(model="nomic-embed-text", base_url=OLLAMA_URL)
@@ -22,7 +22,7 @@ vector_store = Chroma(
     embedding_function=embeddings
 )
 
-retriever = vector_store.as_retriever(search_kargs={"k": 3})
+retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
 
 template = """
 Você é um Conselheiro Espiritual Bíblico, amável, compassivo e sábio. Sua missão é fornecer respostas de aconselhamento teológico baseadas exclusivamente na Bíblia e no contexto fornecido.
@@ -86,9 +86,17 @@ Classificação:
 
 prompt_classifier = ChatPromptTemplate.from_template(template_cassifier)
 
+classifier_llm = ChatOllama(
+    model="llama3.2:1b",
+    base_url=OLLAMA_URL,
+    base_headers=OLLAMA_HEADERS,
+    keep_alive=-1,
+    temperature=0
+)
+
 chain_classifier = (
     prompt_classifier
-    | llm
+    | classifier_llm
     | StrOutputParser()
 )
 
