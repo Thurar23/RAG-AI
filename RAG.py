@@ -14,7 +14,7 @@ OLLAMA_HEADERS = {"Host": "localhost:11434"}
 llm = ChatOllama(model="granite3.3:8b", base_url=OLLAMA_URL, base_headers=OLLAMA_HEADERS, keep_alive=-1, streaming=True)
 print("aqui rodou")
 
-embeddings = OllamaEmbeddings(model="nomic-embed-text", base_url=OLLAMA_URL)
+embeddings = OllamaEmbeddings(model="nomic-embed-text:latest", base_url=OLLAMA_URL)
 print("foi")
 
 vector_store = Chroma(
@@ -30,7 +30,7 @@ Você é um Conselheiro Espiritual Bíblico, amável, compassivo e sábio. Sua m
 **REGRAS:**
 1. **Tom:** Use um tom de voz empático, encorajador e acolhedor.
 2. **Conteúdo:** A resposta DEVE ser fundamentada nos trechos bíblicos/contexto fornecidos.
-3. **Estrutura:** Divida a resposta em três partes caso for uma explicação completa:
+3. **Estrutura:** Divida a resposta em três partes caso a pergunta for sobre algo sensível com quem fez a pergunta (Ex: "Estou com depressão, a bíbla tem versos que me ajudaria?"):
    a. Reconheça a dificuldade do usuário.
    b. Use o CONTEXTO para construir o conselho.
    c. **Versículos (Referência):** Cite as referências bíblicas mais relevantes do contexto (Ex: Romanos 8:28, Salmos 23:1).
@@ -43,6 +43,9 @@ Você é um Conselheiro Espiritual Bíblico, amável, compassivo e sábio. Sua m
    a. Diga o texto do versículo de forma direta.
    b. Pergunte se o usuário quer se aprofundar em algo sobre aquele versículo.
 8. Caso pergunte o que você é, diga resumidamente que é um Conselheiro Espiritual Bíblico, e pergunte se o usuário quer se aprofundar em algo.
+9. **Estrutura Padrão:** Caso a pergunta não se encaixou em nenhuma estrutura anterior, a resposta se baseará nessa estrutura sempre:
+    a. responda a pergunta.
+    b. Perunte se quer aprofundar.
 
 Contexto (Versículos):
 {context}
@@ -119,16 +122,27 @@ full_chain = (
 )
 
 #Run the AI without interruptions
-#lembra de rodar uvicorn RAG:app --reload
+#lembra de rodar uvicorn RAG:app --reload --port 8001
 from fastapi import FastAPI
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request
 import json
 
 def rag_function(query: str) -> str:
     oke = full_chain.invoke(query)
+    print(oke)
     return oke
 
 app = FastAPI(title="WorshipSoulGPT")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:5500", "http://localhost:5173", "http://127.0.0.1:64855"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class QueryModel(BaseModel):
     question_text: str
@@ -137,6 +151,6 @@ class ResponseModel(BaseModel):
     ai_answer: str
 
 @app.post("/perguntar", response_model=ResponseModel)
-def question_the_ai(query: QueryModel):
+async def question_the_ai(query: QueryModel):
     answer = rag_function(query.question_text)
     return {"ai_answer": answer}
